@@ -408,7 +408,7 @@ int main() {
     struct udp_pcb* pcb = udp_new();
     uint8_t counter = 0;
 
-    dmxInput.begin(0, START_CHANNEL, NUM_CHANNELS);
+    dmxInput.begin(15, START_CHANNEL, NUM_CHANNELS);
     dmxInput.read_async(dmxBuffer);
     bool dmxLedState = false;
 
@@ -416,6 +416,7 @@ int main() {
 
     state->complete = false;
     unsigned long lastSendTime = millis();
+    unsigned long lastPrintTime = millis();
 
     while(!state->complete) 
     {
@@ -447,16 +448,20 @@ int main() {
         {
             // debug printout of dmx buffer
             #if DEBUG_DMX
-            uint16_t idx=0;
-            for( uint8_t row=0; row < 32; ++row)
+            if( millis() > 500 + lastPrintTime )
             {
-                printf("R%02d-",row);
-                for( uint8_t col=0; col < 16; ++col)
+                uint16_t idx=0;
+                for( uint8_t row=0; row < 32; ++row)
                 {
-                    printf(" %0x02X", dmxBuffer[idx]);
-                    idx++;
+                    printf("R%02d-",row);
+                    for( uint8_t col=0; col < 16; ++col)
+                    {
+                        printf(" %02x", dmxBuffer[idx]);
+                        idx++;
+                    }
+                    printf("\n");
                 }
-                printf("\n");
+                lastPrintTime = millis();
             }
             #endif
 
