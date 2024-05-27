@@ -5,7 +5,7 @@ include(pico_sdk_import.cmake)
 
 include(pico_extras_import_optional.cmake)
 
-project(wireless_dmx_transmitter C CXX ASM)
+project(wirelessDMXTransmitter C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -32,26 +32,26 @@ if (NOT TARGET pico_cyw43_arch)
 message("Skipping Pico W examples as support is not available")
 endif()
 
-add_executable(wireless_dmx_transmitter
-        picow_access_point.cpp
+add_executable(wirelessDMXTransmitter
+        wirelessDMXTransmitter.cpp
         dhcpserver/dhcpserver.c
         dnsserver/dnsserver.c
         )
 
-target_include_directories(wireless_dmx_transmitter PRIVATE
+target_include_directories(wirelessDMXTransmitter PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts
         ${CMAKE_CURRENT_LIST_DIR}/dhcpserver
         ${CMAKE_CURRENT_LIST_DIR}/dnsserver
         )
 
-target_link_libraries(wireless_dmx_transmitter
+target_link_libraries(wirelessDMXTransmitter
         pico_cyw43_arch_lwip_threadsafe_background
         pico_stdlib
         picodmx
         )
 
-pico_add_extra_outputs(wireless_dmx_transmitter)
+pico_add_extra_outputs(wirelessDMXTransmitter)
 
-pico_enable_stdio_usb(wireless_dmx_transmitter 1)
-pico_enable_stdio_uart(wireless_dmx_transmitter 0)
+pico_enable_stdio_usb(wirelessDMXTransmitter 1)
+pico_enable_stdio_uart(wirelessDMXTransmitter 0)
