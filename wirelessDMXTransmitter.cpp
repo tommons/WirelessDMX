@@ -448,15 +448,17 @@ int main() {
         {
             // debug printout of dmx buffer
             #if DEBUG_DMX
-            if( millis() > 500 + lastPrintTime )
-            {
+            if( millis() > 1000 + lastPrintTime )
+            {               
+                printf("*** DMX Update ***\n");
+                const uint16_t numRows = NUM_CHANNELS / 16;
                 uint16_t idx=0;
-                for( uint8_t row=0; row < 32; ++row)
+                for( uint8_t row=0; row < numRows; ++row)
                 {
-                    printf("R%02d-",row);
+                    printf("Slot %03d:",row*16);
                     for( uint8_t col=0; col < 16; ++col)
                     {
-                        printf(" %02x", dmxBuffer[idx]);
+                        printf(" %02X", dmxBuffer[idx]);
                         idx++;
                     }
                     printf("\n");
