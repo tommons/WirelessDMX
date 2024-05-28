@@ -10,9 +10,10 @@
 
 #include <WiFiUdp.h>
 #include <FastLED.h>
+#include <elapsedMillis.h>
 
-//const char* ssid     = "picow_test";
-//const char* password = "password";
+#define DEBUG_SERIAL_WAIT false
+
 const char* ssid     = "WPSAud2";
 const char* password = "Lamplights";
 
@@ -35,6 +36,7 @@ WiFiUDP Udp;
 CRGB leds[NUMPIXELS];
 
 uint8_t dmxStartAddr = 1;
+bool ledState = false;
 
 void connect()
 {
@@ -68,7 +70,9 @@ void connect()
 
 void setup() {
   Serial.begin(115200);
-  while(!Serial){}
+  while(!Serial && DEBUG_SERIAL_WAIT){}
+
+  pinMode(LED_BUILTIN, OUTPUT);
 
   delay(100);
   FastLED.addLeds<WS2812B, PIN, GRB>(leds, NUMPIXELS);  // GRB ordering is typical
@@ -83,7 +87,8 @@ void setup() {
 }
 
 int value = 0;
-
+elapsedMillis lastPrintTime = 0;
+bool okToPrint = false;
 void loop() {
   
   int id0 = digitalRead(PINID0);
@@ -122,7 +127,23 @@ void loop() {
 
  if (Udp.parsePacket()) {
     int len = Udp.read(packetBuffer, 1024);
-    if (len > 0) {
+    if (len > 0) 
+    {
+        okToPrint = false;
+        if(lastPrintTime > 1000 )
+        {
+          okToPrint = true;
+          lastPrintTime = 0;
+        }
+        
+        if( okToPrint )
+        {
+          Serial.print("UDP Rx Len: ");
+          Serial.println(len);
+        }
+
+        digitalWrite(LED_BUILTIN, ledState);  // turn the LED on (HIGH is the voltage level)
+        ledState = !ledState;
       /*
       Serial.print("dmxStartAddr: ");
       Serial.println(dmxStartAddr);
