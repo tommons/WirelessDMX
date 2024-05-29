@@ -25,10 +25,14 @@ WiFiUDP Udp;
 #define PIN        3
 #define PINID0     2
 #define PINID1     13
+#define PINID2     14
+#define BOARDLED   LED_BUILTIN
 #else
 #define PIN 14
-#define PINID0     2
-#define PINID1     13
+#define PINID0     25
+#define PINID1     26
+#define PINID2     27
+#define BOARDLED   2
 #endif
 
 #define NUMPIXELS 20 // Popular NeoPixel ring size
@@ -72,7 +76,7 @@ void setup() {
   Serial.begin(115200);
   while(!Serial && DEBUG_SERIAL_WAIT){}
 
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(BOARDLED, OUTPUT);
 
   delay(100);
   FastLED.addLeds<WS2812B, PIN, GRB>(leds, NUMPIXELS);  // GRB ordering is typical
@@ -80,6 +84,7 @@ void setup() {
 
   pinMode(PINID0,INPUT_PULLUP);
   pinMode(PINID1,INPUT_PULLUP);
+  pinMode(PINID2,INPUT_PULLUP);
 
   // We start by connecting to a WiFi network
   connect();
@@ -87,37 +92,35 @@ void setup() {
 }
 
 int value = 0;
+
 elapsedMillis lastPrintTime = 0;
+elapsedMillis lastAddrPrintTime = 0;
+
 bool okToPrint = false;
 void loop() {
   
-  int id0 = digitalRead(PINID0);
-  int id1 = digitalRead(PINID1);
+  uint8_t id0 = !digitalRead(PINID0);
+  uint8_t id1 = !digitalRead(PINID1);
+  uint8_t id2 = !digitalRead(PINID2);
+  uint8_t id = (id2 << 2) + (id1 << 1) + (id0 << 0);
 
-  if( id0 == 1 && id1 == 1 ) // 00
-  {
-    dmxStartAddr = 1;
-  }
-  else if( id0 == 1 && id1 == 0 ) // 01
-  {
-    dmxStartAddr = 4;
-  }
-  else if( id0 == 0 && id1 == 1 ) // 10
-  {
-    dmxStartAddr = 7;
-  }
-  else if( id0 == 0 && id1 == 0 ) // 11
-  {
-    dmxStartAddr = 10;
-  }
+  dmxStartAddr = 1+(id*3);
 
-/*
-  Serial.print("id0 ");
-  Serial.print(id0);
-  Serial.print(" id1 ");
-  Serial.print(id1);
-  Serial.println("");
-*/
+  if( lastAddrPrintTime > 1000 )
+  {
+    Serial.print("id0 ");
+    Serial.print(id0);
+    Serial.print(" id1 ");
+    Serial.print(id1);
+    Serial.print(" id2 ");
+    Serial.print(id2);
+    Serial.print(" id ");
+    Serial.print(id);
+    Serial.print(" dmxStartAddr ");
+    Serial.print(dmxStartAddr);
+    Serial.println("");
+    lastAddrPrintTime = 0;
+  }
 
   if(WiFi.status() != WL_CONNECTED)
   {
@@ -142,7 +145,7 @@ void loop() {
           Serial.println(len);
         }
 
-        digitalWrite(LED_BUILTIN, ledState);  // turn the LED on (HIGH is the voltage level)
+        digitalWrite(BOARDLED, ledState);  // turn the LED on (HIGH is the voltage level)
         ledState = !ledState;
       /*
       Serial.print("dmxStartAddr: ");
