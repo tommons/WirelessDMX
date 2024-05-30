@@ -35,7 +35,9 @@ WiFiUDP Udp;
 #define BOARDLED   2
 #endif
 
-#define NUMPIXELS 20 // Popular NeoPixel ring size
+#define DEBUG_PRINT false
+
+#define NUMPIXELS 27 // Popular NeoPixel ring size
 //Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 CRGB leds[NUMPIXELS];
 
@@ -95,6 +97,7 @@ int value = 0;
 
 elapsedMillis lastPrintTime = 0;
 elapsedMillis lastAddrPrintTime = 0;
+elapsedMillis ledBlink = 0;
 
 bool okToPrint = false;
 void loop() {
@@ -106,7 +109,7 @@ void loop() {
 
   dmxStartAddr = 1+(id*3);
 
-  if( lastAddrPrintTime > 1000 )
+  if( lastAddrPrintTime > 1000 && DEBUG_PRINT )
   {
     Serial.print("id0 ");
     Serial.print(id0);
@@ -139,14 +142,18 @@ void loop() {
           lastPrintTime = 0;
         }
         
-        if( okToPrint )
+        if( okToPrint && DEBUG_PRINT)
         {
           Serial.print("UDP Rx Len: ");
           Serial.println(len);
         }
 
-        digitalWrite(BOARDLED, ledState);  // turn the LED on (HIGH is the voltage level)
-        ledState = !ledState;
+        if( ledBlink > 50 )
+        {
+          digitalWrite(BOARDLED, ledState);  // turn the LED on (HIGH is the voltage level)
+          ledState = !ledState;
+          ledBlink = 0;
+        }
       /*
       Serial.print("dmxStartAddr: ");
       Serial.println(dmxStartAddr);
