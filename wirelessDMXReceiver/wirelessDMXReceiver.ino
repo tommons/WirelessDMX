@@ -32,6 +32,9 @@ WiFiUDP Udp;
 #define PINID0     25
 #define PINID1     26
 #define PINID2     27
+#define PWM0       15
+#define PWM1       0
+#define PWM2       4
 #define BOARDLED   2
 #endif
 
@@ -87,6 +90,9 @@ void setup() {
   pinMode(PINID0,INPUT_PULLUP);
   pinMode(PINID1,INPUT_PULLUP);
   pinMode(PINID2,INPUT_PULLUP);
+  pinMode(PWM0,OUTPUT);
+  pinMode(PWM1,OUTPUT);
+  pinMode(PWM2,OUTPUT);
 
   // We start by connecting to a WiFi network
   connect();
@@ -181,6 +187,11 @@ void loop() {
         }
 
         FastLED.show();  
+
+        analogWrite(PWM0,packetBuffer[dmxStartAddr+0]);
+        analogWrite(PWM1,packetBuffer[dmxStartAddr+1]);
+        analogWrite(PWM2,packetBuffer[dmxStartAddr+2]);
+
     }
   }
 }
