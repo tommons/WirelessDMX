@@ -38,7 +38,7 @@ WiFiUDP Udp;
 #define BOARDLED   2
 #endif
 
-#define DEBUG_PRINT false
+#define DEBUG_PRINT true
 
 #define NUMPIXELS 27 // Popular NeoPixel ring size
 //Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
@@ -111,9 +111,21 @@ void loop() {
   uint8_t id0 = !digitalRead(PINID0);
   uint8_t id1 = !digitalRead(PINID1);
   uint8_t id2 = !digitalRead(PINID2);
-  uint8_t id = (id2 << 2) + (id1 << 1) + (id0 << 0);
 
-  dmxStartAddr = 1+(id*3);
+  // use bit 2 to switch between base IDs
+  uint8_t idBase = 1;
+  if( id2 == 1 )
+  {
+    idBase = 353; 
+  }
+  
+  // increment bits 0:1 by 3 addresses and add base
+  // b00 = 0
+  // b01 = 3
+  // b10 = 6
+  uint8_t id = 3*( (id1 << 1) + (id0 << 0) ) + idBase;
+
+  dmxStartAddr = id;
 
   if( lastAddrPrintTime > 1000 && DEBUG_PRINT )
   {
@@ -123,6 +135,8 @@ void loop() {
     Serial.print(id1);
     Serial.print(" id2 ");
     Serial.print(id2);
+    Serial.print(" idBase ");
+    Serial.print(idBase);   
     Serial.print(" id ");
     Serial.print(id);
     Serial.print(" dmxStartAddr ");
