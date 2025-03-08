@@ -38,13 +38,13 @@ WiFiUDP Udp;
 #define BOARDLED   2
 #endif
 
-#define DEBUG_PRINT true
+#define DEBUG_PRINT false
 
 #define NUMPIXELS 27 // Popular NeoPixel ring size
 //Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 CRGB leds[NUMPIXELS];
 
-uint8_t dmxStartAddr = 1;
+uint16_t dmxStartAddr = 1;
 bool ledState = false;
 
 void connect()
@@ -108,12 +108,12 @@ elapsedMillis ledBlink = 0;
 bool okToPrint = false;
 void loop() {
   
-  uint8_t id0 = !digitalRead(PINID0);
-  uint8_t id1 = !digitalRead(PINID1);
-  uint8_t id2 = !digitalRead(PINID2);
+  uint16_t id0 = !digitalRead(PINID0);
+  uint16_t id1 = !digitalRead(PINID1);
+  uint16_t id2 = !digitalRead(PINID2);
 
   // use bit 2 to switch between base IDs
-  uint8_t idBase = 1;
+  uint16_t idBase = 1;
   if( id2 == 1 )
   {
     idBase = 353; 
@@ -123,7 +123,7 @@ void loop() {
   // b00 = 0
   // b01 = 3
   // b10 = 6
-  uint8_t id = 3*( (id1 << 1) + (id0 << 0) ) + idBase;
+  uint16_t id = 3*( (id1 << 1) + (id0 << 0) ) + idBase;
 
   dmxStartAddr = id;
 
