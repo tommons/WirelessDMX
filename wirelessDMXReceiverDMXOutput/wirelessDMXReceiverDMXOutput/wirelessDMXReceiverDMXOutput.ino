@@ -77,6 +77,13 @@ void setup() {
     }
   }
 
+  String fv = WiFi.firmwareVersion();
+  Serial.println("WiFi Firmware Version:");
+  Serial.println(fv);
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
+
   // Pin 1 TX
   // Pin 8 DE
   // Pin 7 RE
@@ -100,6 +107,8 @@ int value = 0;
 elapsedMillis lastPrintTime = 0;
 elapsedMillis lastAddrPrintTime = 0;
 elapsedMillis ledBlink = 0;
+elapsedMillis procTime = 0;
+uint32_t count = 0;
 
 uint8_t val = 0;
 
@@ -112,8 +121,10 @@ void loop() {
     connect();
   }
 
- if (Udp.parsePacket()) {
-    int len = Udp.read(packetBuffer, 1024);
+ int len = Udp.parsePacket();
+ if (len) 
+ {
+    len = Udp.read(packetBuffer, len);
     if (len > 0) 
     {
         okToPrint = false;
@@ -162,6 +173,21 @@ void loop() {
         DMX.write(i,packetBuffer[i]);
       }
       DMX.endTransmission();
+    }
+    ++count;
+
+    if( procTime > 1000)
+    {
+      Serial.print("Proc: ");
+      Serial.print(" count: ");
+      Serial.print(count);
+      Serial.print(" proc: ");
+      Serial.print(procTime);
+      Serial.print(" " );
+      Serial.println( procTime / count);
+
+      count = 0;
+      procTime = 0;
     }
   }
 }
