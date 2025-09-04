@@ -2,14 +2,21 @@
  *  Simple HTTP get webclient test
  */
 
-#include "WiFiS3.h"
-#include <ArduinoRS485.h> // the ArduinoDMX library depends on ArduinoRS485
-#include <ArduinoDMX.h>
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 
 #include <WiFiUdp.h>
+
+#include <Arduino.h>
+#include <esp_dmx.h>
+
 #include <elapsedMillis.h>
 
 #define DEBUG_SERIAL_WAIT true
+#define LED_BUILTIN 2
 
 const char* ssid     = "WPSAud2";
 const char* password = "Lamplights";
@@ -34,6 +41,12 @@ uint16_t dmxStartAddr = 1;
 bool ledState = false;
 bool blink = false;
 
+int transmitPin = 17;
+int receivePin = 16;
+int enablePin = 21;
+dmx_port_t dmxPort = 1;
+byte data[DMX_PACKET_SIZE];
+
 void connect()
 {
   Serial.println();
@@ -41,6 +54,7 @@ void connect()
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
+  WiFi.mode(WIFI_STA);
   status = WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -51,8 +65,6 @@ void connect()
 
     Serial.print(".");
   }
-
-  delay(10000);
 
   printWifiStatus();
 }
@@ -65,37 +77,11 @@ void setup() {
 
   delay(100);
 
-  // check for the WiFi module:
-  if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!");
-    // don't continue
-    while (true)
-    {
-      digitalWrite(LED_BUILTIN, blink);
-      blink = !blink;
-      delay(100);
-    }
-  }
-
-  String fv = WiFi.firmwareVersion();
-  Serial.println("WiFi Firmware Version:");
-  Serial.println(fv);
-  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-    Serial.println("Please upgrade the firmware");
-  }
-
-  // Pin 1 TX
-  // Pin 8 DE
-  // Pin 7 RE
-  if (!DMX.begin()) {
-    Serial.println("Failed to initialize DMX!");
-    while (true)
-    {
-      digitalWrite(LED_BUILTIN, blink);
-      blink = !blink;
-      delay(200);
-    }; // wait for ever
-  }
+  dmx_config_t config = DMX_CONFIG_DEFAULT;
+  dmx_personality_t personalities[] = {};
+  int personality_count = 0;
+  dmx_driver_install(dmxPort, &config, personalities, personality_count);
+  dmx_set_pin(dmxPort, transmitPin, receivePin, enablePin);
 
   // We start by connecting to a WiFi network
   connect();
@@ -114,7 +100,7 @@ uint8_t val = 0;
 
 bool okToPrint = false;
 void loop() {
-  
+
   if(WiFi.status() != WL_CONNECTED)
   {
     WiFi.disconnect();
@@ -167,12 +153,15 @@ void loop() {
       }
       val = newval;
 
-      DMX.beginTransmission();
-      for( uint16_t i=1; i < 4; ++i )
+      
+      for( uint16_t i=1; i < 513; ++i )
       {
-        DMX.write(i,packetBuffer[i]);
+        data[i] = packetBuffer[i];
       }
-      DMX.endTransmission();
+      dmx_write(dmxPort, data, DMX_PACKET_SIZE);
+      dmx_send_num(dmxPort, DMX_PACKET_SIZE);
+      dmx_wait_sent(dmxPort, DMX_TIMEOUT_TICK);
+
     }
     ++count;
 
