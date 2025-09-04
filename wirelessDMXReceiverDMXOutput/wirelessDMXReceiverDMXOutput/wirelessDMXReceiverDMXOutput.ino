@@ -9,14 +9,14 @@
 #endif
 
 #include <WiFiUdp.h>
+#include <FastLED.h>
 
 #include <Arduino.h>
 #include <esp_dmx.h>
 
 #include <elapsedMillis.h>
 
-#define DEBUG_SERIAL_WAIT true
-#define LED_BUILTIN 2
+#define DEBUG_SERIAL_WAIT false
 
 const char* ssid     = "WPSAud2";
 const char* password = "Lamplights";
@@ -26,16 +26,21 @@ unsigned int localPort = 4444;
 uint8_t packetBuffer[1024];
 WiFiUDP Udp;
 
-#if defined(ESP8266)
-#define PIN        3
-#else
 #define PIN 14
+#define PINID0     25
+#define PINID1     26
+#define PINID2     27
 #define PWM0       15
 #define PWM1       0
 #define PWM2       4
-#endif
+#define LED_BUILTIN 2
 
 #define DEBUG_PRINT false
+#define FAST_LED_ENABLE false
+
+#define NUMPIXELS 27 // Popular NeoPixel ring size
+//Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+CRGB leds[NUMPIXELS];
 
 uint16_t dmxStartAddr = 1;
 bool ledState = false;
@@ -57,9 +62,20 @@ void connect()
   WiFi.mode(WIFI_STA);
   status = WiFi.begin(ssid, password);
 
+  #if FAST_LED_ENABLE
+  FastLED.clear();
+  FastLED.show();  
+  #endif
+
   while (WiFi.status() != WL_CONNECTED) {
 
     digitalWrite(LED_BUILTIN, blink);
+    leds[0] = CRGB(blink ? 32 : 0, 0, 0);
+
+    #if FAST_LED_ENABLE
+    FastLED.show();  
+    #endif
+
     blink = !blink;
     delay(500);
 
@@ -71,11 +87,30 @@ void connect()
 
 void setup() {
   Serial.begin(115200);
-  while(!Serial && DEBUG_SERIAL_WAIT){}
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  while(!Serial && DEBUG_SERIAL_WAIT)
+  {
+    digitalWrite(LED_BUILTIN, blink);
+    blink = !blink;
+    delay(100);
+  }
 
   pinMode(LED_BUILTIN, OUTPUT);
 
   delay(100);
+
+  #if FAST_LED_ENABLE
+  FastLED.addLeds<WS2812B, PIN, GRB>(leds, NUMPIXELS);  // GRB ordering is typical
+  FastLED.setBrightness(127);
+  #endif
+
+  pinMode(PINID0,INPUT_PULLUP);
+  pinMode(PINID1,INPUT_PULLUP);
+  pinMode(PINID2,INPUT_PULLUP);
+  pinMode(PWM0,OUTPUT);
+  pinMode(PWM1,OUTPUT);
+  pinMode(PWM2,OUTPUT);
 
   dmx_config_t config = DMX_CONFIG_DEFAULT;
   dmx_personality_t personalities[] = {};
@@ -100,6 +135,42 @@ uint8_t val = 0;
 
 bool okToPrint = false;
 void loop() {
+  uint16_t id0 = !digitalRead(PINID0);
+  uint16_t id1 = !digitalRead(PINID1);
+  uint16_t id2 = !digitalRead(PINID2);
+
+  // use bit 2 to switch between base IDs
+  uint16_t idBase = 1;
+  if( id2 == 1 )
+  {
+    idBase = 353; 
+  }
+  
+  // increment bits 0:1 by 3 addresses and add base
+  // b00 = 0
+  // b01 = 3
+  // b10 = 6
+  uint16_t id = 3*( (id1 << 1) + (id0 << 0) ) + idBase;
+
+  dmxStartAddr = id;
+
+  if( lastAddrPrintTime > 1000 && DEBUG_PRINT )
+  {
+    Serial.print("id0 ");
+    Serial.print(id0);
+    Serial.print(" id1 ");
+    Serial.print(id1);
+    Serial.print(" id2 ");
+    Serial.print(id2);
+    Serial.print(" idBase ");
+    Serial.print(idBase);   
+    Serial.print(" id ");
+    Serial.print(id);
+    Serial.print(" dmxStartAddr ");
+    Serial.print(dmxStartAddr);
+    Serial.println("");
+    lastAddrPrintTime = 0;
+  }
 
   if(WiFi.status() != WL_CONNECTED)
   {
@@ -145,15 +216,25 @@ void loop() {
       Serial.println("");
       */
 
-      uint8_t newval = packetBuffer[1];
-
-      if( val != newval )
-      {
-        Serial.println(newval);
+      #if FAST_LED_ENABLE
+      // Doesn't appear to be compatible with DMX output
+      FastLED.clear();
+      for(int i=0; i<NUMPIXELS; i++) 
+      { // For each pixel...
+        // pixels.Color() takes RGB values, from 0,0,0 up to 255,255,255
+        // Here we're using a moderately bright green color:
+        leds[i] = CRGB( packetBuffer[dmxStartAddr+0],
+                        packetBuffer[dmxStartAddr+1],
+                        packetBuffer[dmxStartAddr+2] );
       }
-      val = newval;
 
-      
+      FastLED.show();  
+
+      analogWrite(PWM0,packetBuffer[dmxStartAddr+0]);
+      analogWrite(PWM1,packetBuffer[dmxStartAddr+1]);
+      analogWrite(PWM2,packetBuffer[dmxStartAddr+2]);
+      #endif
+
       for( uint16_t i=1; i < 513; ++i )
       {
         data[i] = packetBuffer[i];
