@@ -1,37 +1,29 @@
 import socket
 import time
-
-# Define the broadcast address and port
-BROADCAST_ADDRESS = '255.255.255.255'  # Or a specific subnet broadcast address like '192.168.1.255'
-BROADCAST_PORT = 4444
-
-nDmxBytes = 513
-my_byte_array = bytearray(nDmxBytes)
-
-def send_broadcast_message(message):
-    # Create a UDP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    # Enable broadcasting on the socket
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-    try:
-        # Send the broadcast message
-        sock.sendto(message, (BROADCAST_ADDRESS, BROADCAST_PORT))
-        print(f"Sent broadcast to {BROADCAST_ADDRESS}:{BROADCAST_PORT}")
-    except Exception as e:
-        print(f"Error sending broadcast: {e}")
-    finally:
-        sock.close()
-
-def zeroArray(data):
-    for i in range(nDmxBytes):
-        data[i] = 0
-        
-    return data
+from dmxSend import DmxSend
 
 if __name__ == '__main__':
-    
+
+    dmxSend = DmxSend()
+
+    startAddr = 1
+    nStrip = 11
+    speedFwd = 0.125/2
+    speedRev = 0.05
+    brightness = 255
+        
+    while(True):
+        for i in range(nStrip):
+            dmxSend.zero(startAddr, nStrip)
+            dmxSend.set(startAddr+i, brightness)
+            time.sleep(speedFwd)
+            
+        for i in range(nStrip-2,1,-1):
+            dmxSend.zero(startAddr, nStrip)
+            dmxSend.set(startAddr+i, brightness)
+            time.sleep(speedRev)
+            
+    ...
     nStrip = 12
     speed = 0.125/2
     
@@ -106,7 +98,4 @@ if __name__ == '__main__':
             send_broadcast_message(my_byte_array)
             time.sleep(0.05)
             
-    # You can also send messages repeatedly in a loop
-    # while True:
-    #     send_broadcast_message("Another broadcast message!")
-    #     time.sleep(5)
+    ...
